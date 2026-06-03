@@ -29,11 +29,20 @@ unit LoggerPro;
 interface
 
 uses
+  {$IFDEF FPC}
+  Generics.Collections,
+  Classes,
+  Rtti,
+  SyncObjs,
+  ThreadSafeQueueU,
+  SysUtils;
+  {$ELSE}
   System.Generics.Collections,
   System.Classes,
   System.Rtti,
   System.SyncObjs,
   ThreadSafeQueueU, System.SysUtils;
+  {$ENDIF}
 
 const
   DEFAULT_LOG_TAG = 'main';
@@ -45,6 +54,11 @@ var
   DefaultLoggerProAppenderQueueSize: Cardinal = 50000;
 
 type
+  {$IFDEF FPC}
+  TArray<T> = array of T;
+  TFunc<T, TResult> = function(const Arg: T): TResult;
+  {$ENDIF}
+
   TLogType = (Debug = 0, Info, Warning, Error, Fatal);
   TLogErrorReason = (QueueFull);
   TLogErrorAction = (SkipNewest, DiscardOlder);
@@ -157,8 +171,13 @@ type
     function RenderLogItem(const aLogItem: TLogItem): String;
   end;
 
+  {$IFDEF FPC}
+  TLoggerProAppenderErrorEvent = procedure(const AppenderClassName: string; const aFailedLogItem: TLogItem;
+    const Reason: TLogErrorReason; var Action: TLogErrorAction);
+  {$ELSE}
   TLoggerProAppenderErrorEvent = reference to procedure(const AppenderClassName: string; const aFailedLogItem: TLogItem;
     const Reason: TLogErrorReason; var Action: TLogErrorAction);
+  {$ENDIF}
 
   TLoggerProEventsHandler = class sealed
   public
@@ -389,8 +408,13 @@ type
 
   TLoggerProInterfacedObject = class(TInterfacedObject)
   protected
+    {$IFDEF FPC}
+    function _AddRef: Integer; cdecl;
+    function _Release: Integer; cdecl;
+    {$ELSE}
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
+    {$ENDIF}
   end;
 
   TCustomLogWriter = class(TLoggerProInterfacedObject, ICustomLogWriter)
@@ -400,7 +424,6 @@ type
     FFreeAllowed: Boolean;
     FLock: TObject;
     FStackTraceFormatter: TStackTraceFormatter;
-    function GetAppendersClassNames: TArray<string>;
   protected
     FEnabled: Boolean;
     FLogLevel: TLogType;
@@ -412,6 +435,7 @@ type
     constructor Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug); overload;
     destructor Destroy; override;
 
+    function GetAppendersClassNames: TArray<string>;
     function GetAppenders(const aIndex: Integer): ILogAppender;
     procedure AddAppender(const aAppender: ILogAppender);
     procedure DelAppender(const aAppender: ILogAppender);
@@ -723,7 +747,11 @@ type
     procedure Shutdown;
   end;
 
+  {$IFDEF FPC}
+  TOnAppenderLogRow = procedure(const LogItem: TLogItem; out LogRow: string);
+  {$ELSE}
   TOnAppenderLogRow = reference to procedure(const LogItem: TLogItem; out LogRow: string);
+  {$ENDIF}
 
   TLoggerProAppenderBase = class abstract(TInterfacedObject, ILogAppender)
   private
@@ -816,10 +844,18 @@ type
     Do not perform long-running operations directly; instead,
     kick off async work (e.g., compress, upload, archive).
   }
+  {$IFDEF FPC}
+  TFileRotateCallback = procedure(const aRotatedFileName: string);
+  {$ELSE}
   TFileRotateCallback = reference to procedure(const aRotatedFileName: string);
+  {$ENDIF}
 
   { Callback signature for receiving log items }
+  {$IFDEF FPC}
+  TLogItemCallback = procedure(const aLogItem: TLogItem; const aFormattedMessage: string);
+  {$ELSE}
   TLogItemCallback = reference to procedure(const aLogItem: TLogItem; const aFormattedMessage: string);
+  {$ENDIF}
 
   { Webhook appender body content type }
   TWebhookContentType = (JSON, PlainText);
@@ -1320,6 +1356,13 @@ function LoggerProBuilderFromJSONString(const aJSON: string): ILoggerProBuilder;
 implementation
 
 uses
+  {$IFDEF FPC}
+  Types,
+  TypInfo,
+  DateUtils,
+  LoggerPro.AnsiColors,
+  LoggerPro.Renderers;
+  {$ELSE}
   System.Types,
   System.TypInfo,
   LoggerPro.FileAppender,
@@ -1331,6 +1374,7 @@ uses
   // back, so listing it here avoids the interface-section circular ref
   // while still letting the JSON facade live on `uses LoggerPro;`.
   LoggerPro.Config;
+  {$ENDIF}
 
 function GetDefaultFormatSettings: TFormatSettings;
 begin
@@ -1508,22 +1552,38 @@ end;
 
 function LoggerProFromJSONFile(const aFileName: string): ILogWriter;
 begin
+  {$IFDEF FPC}
+  raise ELoggerPro.Create('LoggerPro JSON configuration is not available on FPC yet.');
+  {$ELSE}
   Result := TLoggerProConfig.FromJSONFile(aFileName);
+  {$ENDIF}
 end;
 
 function LoggerProFromJSONString(const aJSON: string): ILogWriter;
 begin
+  {$IFDEF FPC}
+  raise ELoggerPro.Create('LoggerPro JSON configuration is not available on FPC yet.');
+  {$ELSE}
   Result := TLoggerProConfig.FromJSONString(aJSON);
+  {$ENDIF}
 end;
 
 function LoggerProBuilderFromJSONFile(const aFileName: string): ILoggerProBuilder;
 begin
+  {$IFDEF FPC}
+  raise ELoggerPro.Create('LoggerPro JSON configuration is not available on FPC yet.');
+  {$ELSE}
   Result := TLoggerProConfig.BuilderFromJSONFile(aFileName);
+  {$ENDIF}
 end;
 
 function LoggerProBuilderFromJSONString(const aJSON: string): ILoggerProBuilder;
 begin
+  {$IFDEF FPC}
+  raise ELoggerPro.Create('LoggerPro JSON configuration is not available on FPC yet.');
+  {$ELSE}
   Result := TLoggerProConfig.BuilderFromJSONString(aJSON);
+  {$ENDIF}
 end;
 
 { LogColorSchemes }

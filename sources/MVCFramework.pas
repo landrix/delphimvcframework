@@ -41,6 +41,17 @@ unit MVCFramework;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  SysUtils,
+  TypInfo,
+  SyncObjs,
+  DateUtils,
+  Generics.Collections,
+  StrUtils,
+  Rtti,
+  DB,
+  {$ELSE}
   System.Classes,
   System.SysUtils,
   System.TypInfo,
@@ -51,8 +62,9 @@ uses
   System.Generics.Collections,
   System.StrUtils,
   System.Rtti,
-  JSONDataObjects,
   Data.DB,
+  {$ENDIF}
+  JSONDataObjects,
   MVCFramework.Session,
   MVCFramework.DuckTyping,
   MVCFramework.Logger,
@@ -69,18 +81,22 @@ uses
   // https://quality.embarcadero.com/browse/RSP-17216
 
 {$IF NOT Defined(MOBILE)} // file upload is not supported on mobile
+{$IFNDEF FPC}
 {$IF Defined(SeattleOrBetter)}
   Web.ReqMulti,
 {$ELSE}
   ReqMulti,
 {$ENDIF}
 {$ENDIF}
+{$ENDIF}
+{$IFNDEF FPC}
   Web.HTTPApp,
 
 {$IF Defined(MSWINDOWS)}
   Web.Win.IsapiHTTP,
 {$ENDIF}
   Web.WebReq,
+{$ENDIF}
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,

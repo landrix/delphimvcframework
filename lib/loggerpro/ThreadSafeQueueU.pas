@@ -27,9 +27,16 @@ unit ThreadSafeQueueU;
 interface
 
 uses
+  {$IFDEF FPC}
+  Generics.Collections,
+  Types,
+  SyncObjs,
+  SysUtils;
+  {$ELSE}
   System.Generics.Collections,
   System.Types,
   System.SyncObjs, System.SysUtils;
+  {$ENDIF}
 
 type
   TThreadSafeQueue<T: class> = class

@@ -25,9 +25,15 @@ unit Swag.Doc;
 interface
 
 uses
+  {$IFDEF FPC}
+  SysUtils,
+  Classes,
+  Generics.Collections,
+  {$ELSE}
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
+  {$ENDIF}
   System.JSON,
   Swag.Common.Types,
   Swag.Doc.Tags,
@@ -174,7 +180,11 @@ const
 implementation
 
 uses
+  {$IFDEF FPC}
+  SysUtils,
+  {$ELSE}
   System.IOUtils,
+  {$ENDIF}
   Json.Common.Helpers,
   Swag.Common.Consts,
   Swag.Common.Types.Helpers,

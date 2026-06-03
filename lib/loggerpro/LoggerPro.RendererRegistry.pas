@@ -77,12 +77,31 @@ function RegisteredRendererNames: TArray<string>;
 implementation
 
 uses
+  {$IFDEF FPC}
+  SysUtils,
+  Generics.Collections;
+  {$ELSE}
   System.SysUtils,
   System.Generics.Collections;
+  {$ENDIF}
 
 var
   gLock: TObject;
   gRegistry: TDictionary<string, TLogItemRendererClass>;
+
+procedure EnterRegistry;
+begin
+  {$IFNDEF FPC}
+  TMonitor.Enter(gLock);
+  {$ENDIF}
+end;
+
+procedure ExitRegistry;
+begin
+  {$IFNDEF FPC}
+  TMonitor.Exit(gLock);
+  {$ENDIF}
+end;
 
 procedure RegisterRenderer(const aName: string; aClass: TLogItemRendererClass);
 begin
@@ -90,11 +109,11 @@ begin
     raise EArgumentException.Create('RegisterRenderer: name cannot be empty');
   if aClass = nil then
     raise EArgumentException.Create('RegisterRenderer: class reference cannot be nil');
-  TMonitor.Enter(gLock);
+  EnterRegistry;
   try
     gRegistry.AddOrSetValue(aName.ToLower, aClass);
   finally
-    TMonitor.Exit(gLock);
+    ExitRegistry;
   end;
 end;
 
@@ -102,11 +121,11 @@ procedure UnregisterRenderer(const aName: string);
 begin
   if aName.IsEmpty then
     Exit;
-  TMonitor.Enter(gLock);
+  EnterRegistry;
   try
     gRegistry.Remove(aName.ToLower);
   finally
-    TMonitor.Exit(gLock);
+    ExitRegistry;
   end;
 end;
 
@@ -114,11 +133,11 @@ function IsRendererRegistered(const aName: string): Boolean;
 begin
   if aName.IsEmpty then
     Exit(False);
-  TMonitor.Enter(gLock);
+  EnterRegistry;
   try
     Result := gRegistry.ContainsKey(aName.ToLower);
   finally
-    TMonitor.Exit(gLock);
+    ExitRegistry;
   end;
 end;
 
@@ -129,11 +148,11 @@ begin
   aRenderer := nil;
   if aName.IsEmpty then
     Exit(False);
-  TMonitor.Enter(gLock);
+  EnterRegistry;
   try
     Result := gRegistry.TryGetValue(aName.ToLower, lClass);
   finally
-    TMonitor.Exit(gLock);
+    ExitRegistry;
   end;
   if Result then
     aRenderer := lClass.Create;
@@ -141,11 +160,11 @@ end;
 
 function RegisteredRendererNames: TArray<string>;
 begin
-  TMonitor.Enter(gLock);
+  EnterRegistry;
   try
     Result := gRegistry.Keys.ToArray;
   finally
-    TMonitor.Exit(gLock);
+    ExitRegistry;
   end;
 end;
 

@@ -31,16 +31,25 @@ unit MVCFramework.Commons;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  SysUtils,
+  SyncObjs,
+  Rtti,
+  DB,
+  Generics.Collections,
+  {$ELSE}
   System.Classes,
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
   System.RTTI,
   Data.DB,
+  System.Generics.Collections,
+  {$ENDIF}
   IdGlobal,
   IdCoderMIME,
   IdContext,
-  System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
   MVCFramework.DotEnv,
@@ -855,13 +864,18 @@ implementation
 
 uses
   MVCFramework,
+  {$IFDEF FPC}
+  SysUtils,
+  RegExpr,
+  {$ELSE}
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
   System.SysConst,
+  System.RegularExpressions,
+  {$ENDIF}
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Utils,
-  System.RegularExpressions,
   MVCFramework.Logger,
   MVCFramework.Serializer.Commons;
 

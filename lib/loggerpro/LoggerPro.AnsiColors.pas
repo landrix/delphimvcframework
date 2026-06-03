@@ -185,7 +185,11 @@ uses
 {$IFDEF MSWINDOWS}
   Winapi.Windows
 {$ELSE}
+{$IFDEF FPC}
+  BaseUnix
+{$ELSE}
   Posix.Unistd
+{$ENDIF}
 {$ENDIF}
   ;
 
@@ -245,7 +249,11 @@ begin
 end;
 {$ELSE}
 begin
+  {$IFDEF FPC}
+  Result := True;
+  {$ELSE}
   Result := isatty(STDOUT_FILENO) <> 0;
+  {$ENDIF}
 end;
 {$ENDIF}
 

@@ -27,7 +27,11 @@ unit LoggerPro.Renderers;
 interface
 
 uses
+  {$IFDEF FPC}
+  LoggerPro, LoggerPro.AnsiColors, SysUtils;
+  {$ELSE}
   LoggerPro, LoggerPro.AnsiColors, System.SysUtils;
+  {$ENDIF}
 
 type
   TLogItemRendererDefault = class(TLogItemRenderer)
@@ -134,10 +138,25 @@ var
 implementation
 
 uses
+  {$IFDEF FPC}
+  DateUtils,
+  Rtti,
+  TypInfo,
+  {$ELSE}
   System.DateUtils,
   System.Rtti,
   System.TypInfo,
+  {$ENDIF}
   LoggerPro.RendererRegistry;
+
+function ValueDateTimeToISO8601(const aValue: TValue): string;
+begin
+  {$IFDEF FPC}
+  Result := DateToISO8601(TDateTime(aValue.AsExtended), False);
+  {$ELSE}
+  Result := DateToISO8601(aValue.AsType<TDateTime>, False);
+  {$ENDIF}
+end;
 
 function GetDefaultLogItemRenderer: ILogItemRenderer;
 begin
@@ -191,7 +210,7 @@ begin
         lValueStr := lParam.Value.AsInt64.ToString;
       tkFloat:
         if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
-          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+          lValueStr := ValueDateTimeToISO8601(lParam.Value)
         else
           lValueStr := FloatToStr(lParam.Value.AsExtended, InternalFormatSettings);
       tkEnumeration:
@@ -354,7 +373,7 @@ begin
       Result := aValue.AsInt64.ToString;
     tkFloat:
       if aValue.TypeInfo = TypeInfo(TDateTime) then
-        Result := DateToISO8601(aValue.AsType<TDateTime>, False)
+        Result := ValueDateTimeToISO8601(aValue)
       else
         Result := FloatToStr(aValue.AsExtended, aFormatSettings);
     tkEnumeration:
@@ -403,7 +422,12 @@ begin
   inherited;
   // Use invariant settings so floats always render with '.' decimal separator,
   // independent of OS locale. This is required by the logfmt contract.
+  {$IFDEF FPC}
+  fFormatSettings := DefaultFormatSettings;
+  fFormatSettings.DecimalSeparator := '.';
+  {$ELSE}
   fFormatSettings := TFormatSettings.Invariant;
+  {$ENDIF}
 end;
 
 procedure TLogItemRendererLogFmt.TearDown;
@@ -461,7 +485,7 @@ begin
         lValueStr := lParam.Value.AsInt64.ToString;
       tkFloat:
         if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
-          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+          lValueStr := ValueDateTimeToISO8601(lParam.Value)
         else
           lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
       tkEnumeration:
@@ -579,7 +603,7 @@ begin
         lValueStr := lParam.Value.AsInt64.ToString;
       tkFloat:
         if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
-          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+          lValueStr := ValueDateTimeToISO8601(lParam.Value)
         else
           lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
       tkEnumeration:

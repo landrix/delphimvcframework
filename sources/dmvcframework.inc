@@ -39,6 +39,11 @@
 {$DEFINE MOBILE}
 {$ENDIF}
 
+{$IFDEF FPC}
+{$UNDEF USEFIREDAC}
+{$UNDEF USEDBX}
+{$UNDEF WEBAPACHEHTTP}
+{$ELSE}
 {$IF CompilerVersion <= 29} // XE8
 DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$ENDIF}
@@ -74,6 +79,7 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$IF CompilerVersion >= 37} // 13 Florence
 {$DEFINE FLORENCEORBETTER}
 {$ENDIF}
+{$ENDIF}
 
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
@@ -88,13 +94,19 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$DEFINE TOJSON}
 {$ENDIF}
 
+{$IFNDEF FPC}
 {$DEFINE SYSTEMJSON}
+{$ENDIF}
 {$IFNDEF MOBILE}
 {$IFNDEF MACOS}
+{$IFNDEF FPC}
 {$DEFINE WEBAPACHEHTTP}
 {$ENDIF}
 {$ENDIF}
+{$ENDIF}
+{$IFNDEF FPC}
 {$DEFINE USEFIREDAC}
+{$ENDIF}
 
 {$IF Defined(SYDNEYORBETTER)}
 {$DEFINE CUSTOM_MANAGED_RECORDS}
