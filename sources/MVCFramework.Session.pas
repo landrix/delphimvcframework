@@ -29,12 +29,23 @@ unit MVCFramework.Session;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  SyncObjs,
+  SysUtils,
+  Generics.Collections,
+  {$ELSE}
   System.Classes,
   System.SyncObjs,
   System.SysUtils,
   System.Generics.Collections,
+  {$ENDIF}
   MVCFramework.Commons,
-  MVCFramework.Nullables, Web.HTTPApp;
+  MVCFramework.Nullables
+  {$IFNDEF FPC}
+  , Web.HTTPApp
+  {$ENDIF}
+  ;
 
 const
   DEFAULT_SESSION_INACTIVITY = 60; // in minutes

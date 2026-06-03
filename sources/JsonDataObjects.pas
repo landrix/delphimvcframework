@@ -1729,7 +1729,11 @@ begin
 end;
 {$ELSE}
 begin
+  {$IFDEF FPC}
+  Result := UniversalTimeToLocal(UtcDateTime);
+  {$ELSE}
   Result := TTimeZone.Local.ToLocalTime(UtcDateTime);
+  {$ENDIF}
 end;
 {$ENDIF MSWINDOWS}
 
@@ -1746,7 +1750,11 @@ begin
 end;
 {$ELSE}
 begin
+  {$IFDEF FPC}
+  Result := LocalTimeToUniversal(DateTime);
+  {$ELSE}
   Result := TTimeZone.Local.ToUniversalTime(DateTime);
+  {$ENDIF}
 end;
 {$ENDIF MSWINDOWS}
 
@@ -1792,7 +1800,11 @@ begin
   else
     Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3d', [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
 
+  {$IFDEF FPC}
+  Offset := Value - LocalTimeToUniversal(Value);
+  {$ELSE}
   Offset := Value - TTimeZone.Local.ToUniversalTime(Value);
+  {$ENDIF}
   DecodeTime(Offset, Hour, Minute, Second, MilliSeconds);
   if Offset < 0 then
     Result := Format('%s-%.2d:%.2d', [Result, Hour, Minute])
@@ -3656,7 +3668,11 @@ end;
 {$ELSE}
 begin
   if UseUtcTime then
+    {$IFDEF FPC}
+    Result := UtcDateTimeToJSON(LocalTimeToUniversal(Value))
+    {$ELSE}
     Result := UtcDateTimeToJSON(TTimeZone.Local.ToUniversalTime(Value))
+    {$ENDIF}
   else
     Result := DateTimeToISO8601(Value);
 end;

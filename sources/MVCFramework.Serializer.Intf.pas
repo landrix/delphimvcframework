@@ -31,9 +31,15 @@ unit MVCFramework.Serializer.Intf;
 interface
 
 uses
+  {$IFDEF FPC}
+  Rtti,
+  TypInfo,
+  DB,
+  {$ELSE}
   System.Rtti,
   System.TypInfo,
   Data.DB,
+  {$ENDIF}
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons;
 

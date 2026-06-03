@@ -5,7 +5,11 @@ unit MVCFramework.Container;
 interface
 
 uses
+  {$IFDEF FPC}
+  Generics.Collections, Rtti, SysUtils, TypInfo;
+  {$ELSE}
   System.Generics.Collections, System.Rtti, System.SysUtils, System.TypInfo;
+  {$ENDIF}
 
 
 type
@@ -14,7 +18,11 @@ type
 
   TClassOfInterfacedObject = class of TInterfacedObject;
 
+  {$IFDEF FPC}
+  TInterfacedObjectFactory = function: TInterfacedObject;
+  {$ELSE}
   TInterfacedObjectFactory = reference to function: TInterfacedObject;
+  {$ENDIF}
 
   IMVCServiceContainerResolver = interface
     ['{2C920EC2-001F-40BE-9911-43A65077CADD}']

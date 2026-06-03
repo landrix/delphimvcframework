@@ -29,12 +29,22 @@ interface
 {$I dmvcframework.inc}
 
 uses
+  {$IFDEF FPC}
+  SysUtils, Variants, Math, Generics.Collections, MaskUtils;
+  {$ELSE}
   System.SysUtils, System.Variants, System.Math, System.Generics.Collections,
   System.Masks;
+  {$ENDIF}
 
 type
+  {$IFDEF FPC}
+  TArray<T> = array of T;
+  TFuncHandler = function(const Args: array of Variant): Variant;
+  TExternalVariableResolver = function(const VarName: string; out Value: Variant): Boolean;
+  {$ELSE}
   TFuncHandler = reference to function(const Args: array of Variant): Variant;
   TExternalVariableResolver = reference to function(const VarName: string; out Value: Variant): Boolean;
+  {$ENDIF}
 
   /// <summary>
   /// Interface for expression evaluation without manual memory management

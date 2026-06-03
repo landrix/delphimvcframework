@@ -27,18 +27,31 @@
 unit MVCFramework.DuckTyping;
 
 {$I dmvcframework.inc}
+{$IFNDEF FPC}
 {$LEGACYIFEND ON}
+{$ENDIF}
 
 interface
 
 uses
+  {$IFDEF FPC}
+  Rtti,
+  Generics.Collections,
+  SysUtils,
+  TypInfo,
+  Math;
+  {$ELSE}
   System.Rtti,
   System.Generics.Collections,
   System.SysUtils,
   System.TypInfo,
   System.Math;
+  {$ENDIF}
 
 type
+  {$IFDEF FPC}
+  TFunc<T1, T2, TResult> = function(const AValue1: T1; const AValue2: T2): TResult of object;
+  {$ENDIF}
 
   EMVCDuckTypingException = class(Exception);
 
@@ -90,6 +103,11 @@ type
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
     fIsWrappedList: Boolean;
+    {$IFDEF FPC}
+    FSortPropertyName: string;
+    FSortOrder: TSortingType;
+    function CompareSortProperty(const ALeft, ARight: TObject): Integer;
+    {$ENDIF}
     function HookListMethods(const aObjType: TRttiType): Boolean;
   protected
     function GetEnumerator: TDuckListEnumerator;
@@ -133,11 +151,11 @@ function CompareValue(const ALeft, ARight: TValue): Integer;
 begin
   if ALeft.IsOrdinal then
   begin
-    Result := System.Math.CompareValue(ALeft.AsOrdinal, ARight.AsOrdinal);
+    Result := CompareValue(ALeft.AsOrdinal, ARight.AsOrdinal);
   end
   else if ALeft.Kind = tkFloat then
   begin
-    Result := System.Math.CompareValue(ALeft.AsExtended, ARight.AsExtended);
+    Result := CompareValue(ALeft.AsExtended, ARight.AsExtended);
   end
   else if ALeft.Kind in [tkString, tkUString, tkWString, tkLString] then
   begin
@@ -313,6 +331,13 @@ begin
   FClearMethod := aObjType.GetMethod('Clear');
   if FClearMethod = nil then Exit(False);
 
+  {$IFDEF FPC}
+  FGetItemMethod := FObjType.GetMethod('GetElement');
+  if FGetItemMethod = nil then
+    FGetItemMethod := FObjType.GetMethod('GetItem');
+  if FGetItemMethod = nil then
+    Exit(False);
+  {$ELSE}
   if aObjType.GetIndexedProperty('Items') <> nil then
   begin
     FGetItemMethod := aObjType.GetIndexedProperty('Items').ReadMethod;
@@ -329,6 +354,7 @@ begin
   begin
     Exit(False);
   end;
+  {$ENDIF}
 
   FCountProperty := FObjType.GetProperty('Count');
   if FCountProperty = nil then
@@ -412,6 +438,11 @@ end;
 
 procedure TDuckTypedList.Sort(const APropertyName: string; const AOrder: TSortingType);
 begin
+  {$IFDEF FPC}
+  FSortPropertyName := APropertyName;
+  FSortOrder := AOrder;
+  QuickSort(Self, CompareSortProperty);
+  {$ELSE}
   if (AOrder = soAscending) then
     QuickSort(Self,
       function(ALeft, ARight: TObject): Integer
@@ -432,7 +463,22 @@ begin
         PropRight := FContext.GetType(ARight).GetProperty(APropertyName);
         Result := -1 * CompareValue(PropLeft, PropRight);
       end);
+  {$ENDIF}
 end;
+
+{$IFDEF FPC}
+function TDuckTypedList.CompareSortProperty(const ALeft, ARight: TObject): Integer;
+var
+  PropLeft, PropRight: TRttiProperty;
+begin
+  PropLeft := FContext.GetType(ALeft.ClassInfo).GetProperty(FSortPropertyName);
+  PropRight := FContext.GetType(ARight.ClassInfo).GetProperty(FSortPropertyName);
+  if FSortOrder = soAscending then
+    Result := CompareValue(PropLeft, PropRight)
+  else
+    Result := -1 * CompareValue(PropLeft, PropRight);
+end;
+{$ENDIF}
 
 class function TDuckTypedList.Wrap(const AObjectAsDuck: TObject; const AOwnsObject: Boolean): IMVCList;
 var

@@ -27,9 +27,15 @@ unit MVCFramework.DotEnv.Parser;
 interface
 
 uses
+  {$IFDEF FPC}
+  Generics.Collections,
+  SysUtils,
+  Variants,
+  {$ELSE}
   System.Generics.Collections,
   System.SysUtils,
   System.Variants,
+  {$ENDIF}
   ExprEvaluator;
 
 type
@@ -98,9 +104,14 @@ type
 implementation
 
 uses
+  {$IFDEF FPC}
+  TypInfo,
+  Classes;
+  {$ELSE}
   System.IOUtils,
   System.TypInfo,
   System.Classes;
+  {$ENDIF}
 
 const
   LINE_BREAKS: array[TLineBreakStyle.MSWindows..TLineBreakStyle.Linux] of AnsiString = (#13#10, #10);

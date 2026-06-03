@@ -29,13 +29,22 @@ unit MVCFramework.Logger;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  SysUtils,
+  {$ELSE}
   System.Classes,
   System.SysUtils,
+  {$ENDIF}
   MVCFramework.Commons,
+  {$IFNDEF FPC}
   System.Diagnostics,
+  {$ENDIF}
   LoggerPro,
+  {$IFNDEF FPC}
   LoggerPro.Builder,
   LoggerPro.FileAppender;
+  {$ENDIF}
 
 const
   LOGGERPRO_TAG = 'dmvcframework';
@@ -173,7 +182,9 @@ uses
   LoggerPro.CallbackAppender,
   LoggerPro.Renderers,
   MVCFramework.Logger.ColorConsoleRenderer,
+  {$IFNDEF FPC}
   System.IOUtils,
+  {$ENDIF}
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
 

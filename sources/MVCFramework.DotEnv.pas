@@ -27,12 +27,26 @@ unit MVCFramework.DotEnv;
 interface
 
 uses
+  {$IFDEF FPC}
+  Generics.Collections,
+  {$ELSE}
   System.Generics.Collections,
+  {$ENDIF}
   MVCFramework.DotEnv.Parser,
+  {$IFDEF FPC}
+  SysUtils;
+  {$ELSE}
   System.SysUtils;
+  {$ENDIF}
 
 type
 {$SCOPEDENUMS ON}
+  {$IFDEF FPC}
+  TProc<T> = procedure(const AValue: T);
+  TFunc<TResult> = function: TResult;
+  TArray<T> = array of T;
+  {$ENDIF}
+
   TMVCDotEnvPriority = (FileThenEnv, EnvThenFile, OnlyFile, OnlyEnv);
 
   EMVCDotEnv = class(Exception)
@@ -68,9 +82,14 @@ function NewDotEnv: IMVCDotEnvBuilder;
 implementation
 
 uses
+  {$IFDEF FPC}
+  TypInfo,
+  Classes,
+  {$ELSE}
   System.IOUtils,
   System.TypInfo,
   System.Classes,
+  {$ENDIF}
   MVCFramework.Commons;
 
 var
