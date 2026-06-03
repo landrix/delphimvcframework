@@ -4426,7 +4426,13 @@ end;
 
 class operator NullableTGUID.Equal(LeftValue: NullableTGUID; RightValue: NullableTGUID) : Boolean;
 begin
-  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+  Result := (LeftValue.IsNull and RightValue.IsNull)
+    or ((LeftValue.HasValue and RightValue.HasValue)
+    {$IFDEF FPC}
+    and IsEqualGUID(LeftValue.Value, RightValue.Value));
+    {$ELSE}
+    and (LeftValue.Value = RightValue.Value));
+    {$ENDIF}
 end;
 
 procedure NullableTGUID.SetNull;

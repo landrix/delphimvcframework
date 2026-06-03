@@ -29,7 +29,11 @@ unit MVCFramework.Logger.ColorConsoleRenderer;
 interface
 
 uses
+  {$IFDEF FPC}
+  SysUtils,
+  {$ELSE}
   System.SysUtils,
+  {$ENDIF}
   LoggerPro;
 
 type
@@ -61,7 +65,11 @@ type
 implementation
 
 uses
+  {$IFDEF FPC}
+  Rtti,
+  {$ELSE}
   System.Rtti,
+  {$ENDIF}
   LoggerPro.AnsiColors,
   LoggerPro.RendererRegistry;
 
@@ -80,7 +88,11 @@ end;
 procedure TMVCColorConsoleRenderer.Setup;
 begin
   EnableANSIColorConsole;
+  {$IFDEF FPC}
+  fFormatSettings := DefaultFormatSettings;
+  {$ELSE}
   fFormatSettings := TFormatSettings.Create;
+  {$ENDIF}
 end;
 
 procedure TMVCColorConsoleRenderer.TearDown;

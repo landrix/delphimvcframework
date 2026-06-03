@@ -28,8 +28,13 @@ interface
 
 uses
   LoggerPro,
+  {$IFDEF FPC}
+  SysUtils,
+  Classes;
+  {$ELSE}
   System.SysUtils,
   System.Classes;
+  {$ENDIF}
 
 type
   { @abstract(Appender that invokes a callback for each log item)
@@ -94,6 +99,13 @@ begin
 
   if FSynchronizeToMainThread then
   begin
+    {$IFDEF FPC}
+    try
+      FCallback(aLogItem, lFormattedMessage);
+    except
+      // keep callback failures local to the appender
+    end;
+    {$ELSE}
     // Clone the item since original will be freed after WriteLog returns.
     // Swallow callback exceptions: a buggy callback must not turn the
     // appender into "Failing" state, because our default TryToRestart
@@ -113,6 +125,7 @@ begin
           lClonedItem.Free;
         end;
       end);
+    {$ENDIF}
   end
   else
   begin

@@ -31,10 +31,16 @@ unit LoggerPro.ConsoleAppender;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  SysUtils,
+  SyncObjs,
+  {$ELSE}
   System.Classes,
   System.SysUtils,
-  LoggerPro,
-  System.SyncObjs;
+  System.SyncObjs,
+  {$ENDIF}
+  LoggerPro;
 
 type
   /// <summary>
@@ -145,8 +151,12 @@ uses
 {$IFDEF MSWINDOWS}
   Winapi.Windows,
 {$ENDIF}
-{$IFDEF POSIX}
+{$IFDEF FPC}
+  BaseUnix,
+{$ELSE}
+  {$IFDEF POSIX}
   Posix.Unistd,
+  {$ENDIF}
 {$ENDIF}
   LoggerPro.Renderers,
   LoggerPro.AnsiColors;
@@ -210,9 +220,9 @@ begin
   end;
 {$ELSE}
   if aUseStdErr then
-    __write(STDERR_FILENO, @lBytes[0], Length(lBytes))
+    fpWrite(TextRec(ErrOutput).Handle, lBytes[0], Length(lBytes))
   else
-    __write(STDOUT_FILENO, @lBytes[0], Length(lBytes));
+    fpWrite(TextRec(Output).Handle, lBytes[0], Length(lBytes));
 {$ENDIF}
 end;
 

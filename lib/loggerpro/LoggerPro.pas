@@ -422,7 +422,11 @@ type
     FLoggerThread: TLoggerThread;
     FLogAppenders: TLogAppenderList;
     FFreeAllowed: Boolean;
+    {$IFDEF FPC}
+    FLock: TRTLCriticalSection;
+    {$ELSE}
     FLock: TObject;
+    {$ENDIF}
     FStackTraceFormatter: TStackTraceFormatter;
   protected
     FEnabled: Boolean;
@@ -1376,6 +1380,37 @@ uses
   LoggerPro.Config;
   {$ENDIF}
 
+{$IFDEF FPC}
+procedure EnterLogLock(var ALock: TRTLCriticalSection); inline;
+begin
+  EnterCriticalSection(ALock);
+end;
+
+procedure ExitLogLock(var ALock: TRTLCriticalSection); inline;
+begin
+  LeaveCriticalSection(ALock);
+end;
+
+procedure LogMemoryBarrier; inline;
+begin
+end;
+{$ELSE}
+procedure EnterLogLock(ALock: TObject); inline;
+begin
+  TMonitor.Enter(ALock);
+end;
+
+procedure ExitLogLock(ALock: TObject); inline;
+begin
+  TMonitor.Exit(ALock);
+end;
+
+procedure LogMemoryBarrier; inline;
+begin
+  MemoryBarrier;
+end;
+{$ENDIF}
+
 function GetDefaultFormatSettings: TFormatSettings;
 begin
   Result.DateSeparator := '-';
@@ -1794,18 +1829,22 @@ end;
 
 function TCustomLogWriter.AppendersCount: Integer;
 begin
-  TMonitor.Enter(FLock);
+  EnterLogLock(FLock);
   try
     Result := Self.FLogAppenders.Count;
   finally
-    TMonitor.Exit(FLock);
+    ExitLogLock(FLock);
   end;
 end;
 
 constructor TCustomLogWriter.Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug);
 begin
   inherited Create;
+  {$IFDEF FPC}
+  InitCriticalSection(FLock);
+  {$ELSE}
   FLock := TObject.Create;
+  {$ENDIF}
   FFreeAllowed := False;
   FShuttingDown := False;
   FLogAppenders := aLogAppenders;
@@ -1826,29 +1865,33 @@ begin
   // Free resources
   FLoggerThread.Free;
   FLogAppenders.Free;
+  {$IFDEF FPC}
+  DoneCriticalSection(FLock);
+  {$ELSE}
   FLock.Free;
+  {$ENDIF}
   inherited Destroy;
 end;
 
 function TCustomLogWriter.GetAppenders(const aIndex: Integer): ILogAppender;
 begin
-  TMonitor.Enter(FLock);
+  EnterLogLock(FLock);
   try
     Result := Self.FLogAppenders[aIndex];
   finally
-    TMonitor.Exit(FLock);
+    ExitLogLock(FLock);
   end;
 end;
 
 procedure TCustomLogWriter.AddAppender(const aAppender: ILogAppender);
 begin
-  TMonitor.Enter(FLock);
+  EnterLogLock(FLock);
   try
     Self.FLogAppenders.Add(aAppender);
     if Assigned(Self.FLoggerThread.FAppendersDecorators) then
       Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
   finally
-    TMonitor.Exit(FLock);
+    ExitLogLock(FLock);
   end;
 end;
 
@@ -1856,7 +1899,7 @@ procedure TCustomLogWriter.DelAppender(const aAppender: ILogAppender);
 var
   i: Integer;
 begin
-  TMonitor.Enter(FLock);
+  EnterLogLock(FLock);
   try
     i := Self.FLoggerThread.FAppenders.IndexOf(aAppender);
     if i >= 0 then
@@ -1871,7 +1914,7 @@ begin
         if Self.FLoggerThread.FAppendersDecorators[i].FLogAppender = aAppender then
           Self.FLoggerThread.FAppendersDecorators.Delete(i);
   finally
-    TMonitor.Exit(FLock);
+    ExitLogLock(FLock);
   end;
 end;
 
@@ -1879,7 +1922,7 @@ function TCustomLogWriter.GetAppendersClassNames: TArray<string>;
 var
   I: Cardinal;
 begin
-  TMonitor.Enter(FLock);
+  EnterLogLock(FLock);
   try
     SetLength(Result, FLogAppenders.Count);
     for I := 0 to FLogAppenders.Count - 1 do
@@ -1887,7 +1930,7 @@ begin
       Result[I] := TObject(FLogAppenders[I]).ClassName;
     end;
   finally
-    TMonitor.Exit(FLock);
+    ExitLogLock(FLock);
   end;
 end;
 
@@ -1896,11 +1939,13 @@ begin
   FLoggerThread := TLoggerThread.Create(FLogAppenders);
   FLoggerThread.EventsHandlers := aEventsHandler;
   FLoggerThread.Start;
+  {$IFNDEF FPC}
   if not System.IsLibrary then
   begin
     while not FLoggerThread.Started do
       Sleep(1);
   end;
+  {$ENDIF}
   // When running in a DLL, we skip the spin-wait to avoid a deadlock
   // caused by the Windows Loader Lock. The queue is already created
   // in TLoggerThread.Create, so log items can be safely enqueued
@@ -2003,14 +2048,14 @@ begin
   // Full-fence read for ARM / weakly-ordered platforms. FLogLevel is a
   // 1-byte enum (TLogType) so x86 already gets an atomic load for free;
   // the memory barrier here guarantees the same contract on ARM.
-  MemoryBarrier;
+  LogMemoryBarrier;
   Result := FLogLevel;
 end;
 
 procedure TCustomLogWriter.SetMinimumLevel(const aLevel: TLogType);
 begin
   FLogLevel := aLevel;
-  MemoryBarrier;
+  LogMemoryBarrier;
 end;
 
 procedure TLogWriter.Error(const aMessage: string);
@@ -2063,12 +2108,14 @@ begin
   Result := Result + E.ClassName + ': ' + E.Message;
 
   // Unwind chained exceptions (InnerException chain)
+  {$IFNDEF FPC}
   lInner := E.InnerException;
   while lInner <> nil do
   begin
     Result := Result + sLineBreak + '  Caused by: ' + lInner.ClassName + ': ' + lInner.Message;
     lInner := lInner.InnerException;
   end;
+  {$ENDIF}
 
   if Assigned(FStackTraceFormatter) then
   begin
@@ -2388,10 +2435,12 @@ begin
               FQueue.SetEvent;
             // Continue loop; will exit when Terminated and queue is empty
           end;
+        {$IFNDEF FPC}
         wrIOCompletion:
           begin
             raise ELoggerPro.Create('Unhandled WaitResult: wrIOCompletition');
           end;
+        {$ENDIF}
       end;
     end;
     // Deterministic shutdown in two phases:
@@ -2872,7 +2921,11 @@ begin
   if Length(AContext) = 0 then
     Exit;
 
+  {$IFDEF FPC}
+  lFormatSettings := DefaultFormatSettings;
+  {$ELSE}
   lFormatSettings := TFormatSettings.Create;
+  {$ENDIF}
   for I := 0 to High(AContext) do
   begin
     lParam := AContext[I];
@@ -2881,7 +2934,11 @@ begin
         lValueStr := lParam.Value.AsInt64.ToString;
       tkFloat:
         if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+          {$IFDEF FPC}
+          lValueStr := DateToISO8601(TDateTime(lParam.Value.AsExtended), False)
+          {$ELSE}
           lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+          {$ENDIF}
         else
           lValueStr := FloatToStr(lParam.Value.AsExtended, lFormatSettings);
       tkEnumeration:

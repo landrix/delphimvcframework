@@ -51,6 +51,38 @@ const
   DEFAULT_SESSION_INACTIVITY = 60; // in minutes
 
 type
+  {$IFDEF FPC}
+  TCookie = class
+  public
+    Name: string;
+    Value: string;
+    HttpOnly: Boolean;
+    Expires: TDateTime;
+    Path: string;
+  end;
+
+  TCookieCollection = class
+  private
+    FItems: TList<TCookie>;
+    function GetCount: Integer;
+    function GetItem(const AIndex: Integer): TCookie;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Add: TCookie;
+    procedure Delete(const AIndex: Integer);
+    property Count: Integer read GetCount;
+    property Items[const AIndex: Integer]: TCookie read GetItem; default;
+  end;
+
+  TWebResponse = class
+  public
+    Cookies: TCookieCollection;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+  {$ENDIF}
+
   EMVCSession = class(EMVCException)
 
   end;
@@ -186,14 +218,74 @@ procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection);
 implementation
 
 uses
+  {$IFDEF FPC}
+  DateUtils,
+  {$ELSE}
   System.IOUtils,
+  {$ENDIF}
   MVCFramework.Logger,
-  MVCFramework.Serializer.Commons, System.DateUtils;
+  MVCFramework.Serializer.Commons
+  {$IFNDEF FPC}
+  , System.DateUtils
+  {$ENDIF}
+  ;
 
 var
   GlSessionList: TObjectDictionary<string, TMVCWebSessionMemory> = nil;
   GlLastSessionListClear: TDateTime;
   GlCriticalSection: TCriticalSection;
+
+{$IFDEF FPC}
+constructor TCookieCollection.Create;
+begin
+  inherited Create;
+  FItems := TList<TCookie>.Create;
+end;
+
+destructor TCookieCollection.Destroy;
+var
+  LCookie: TCookie;
+begin
+  for LCookie in FItems do
+    LCookie.Free;
+  FItems.Free;
+  inherited Destroy;
+end;
+
+function TCookieCollection.Add: TCookie;
+begin
+  Result := TCookie.Create;
+  FItems.Add(Result);
+end;
+
+procedure TCookieCollection.Delete(const AIndex: Integer);
+begin
+  FItems[AIndex].Free;
+  FItems.Delete(AIndex);
+end;
+
+function TCookieCollection.GetCount: Integer;
+begin
+  Result := FItems.Count;
+end;
+
+function TCookieCollection.GetItem(const AIndex: Integer): TCookie;
+begin
+  Result := FItems[AIndex];
+end;
+
+constructor TWebResponse.Create;
+begin
+  inherited Create;
+  Cookies := TCookieCollection.Create;
+end;
+
+destructor TWebResponse.Destroy;
+begin
+  Cookies.Free;
+  inherited Destroy;
+end;
+{$ENDIF}
   GSessionTypeLock: Int64 = 0;
 
 
