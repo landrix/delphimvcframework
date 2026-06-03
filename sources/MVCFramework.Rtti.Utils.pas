@@ -29,14 +29,27 @@ unit MVCFramework.Rtti.Utils;
 interface
 
 uses
+  {$IFDEF FPC}
+  Classes,
+  TypInfo,
+  Rtti,
+  Generics.Collections,
+  SysUtils,
+  DB,
+  {$ELSE}
   System.Classes,
   System.TypInfo,
   System.Rtti,
   System.Generics.Collections,
   System.SysUtils,
-  Data.DB, MVCFramework.Logger;
+  Data.DB,
+  {$ENDIF}
+  MVCFramework.Logger;
 
 type
+  {$IFDEF FPC}
+  TProc<T> = procedure(const AValue: T) of object;
+  {$ENDIF}
 
   TRttiUtils = class sealed
   private

@@ -29,6 +29,7 @@
 unit MVCFramework;
 
 {$I dmvcframework.inc}
+{$IFNDEF FPC}
 {$IF IOS}
 {$MESSAGE Fatal 'This unit is not compilable on iOS'}
 {$ENDIF}
@@ -36,6 +37,7 @@ unit MVCFramework;
   METHODS(DefaultMethodRttiVisibility)
   FIELDS(DefaultFieldRttiVisibility)
   PROPERTIES(DefaultPropertyRttiVisibility)}
+{$ENDIF}
 {$WARNINGS OFF}
 
 interface

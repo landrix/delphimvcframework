@@ -29,24 +29,35 @@
 
 unit MVCFramework.Nullables;
 
+{$IFNDEF FPC}
 {$IF CompilerVersion >= 35} // 11 Alexandria
 {$DEFINE USE_EQUALS}
+{$ENDIF}
 {$ENDIF}
 
 interface
 
 uses
+  {$IFDEF FPC}
+  SysUtils, Classes, TypInfo, Rtti;
+  {$ELSE}
   System.SysUtils, System.Classes, System.TypInfo, System.RTTI;
+  {$ENDIF}
 
 type
   EMVCNullable = class(Exception)
 
   end;
 
+{$IFDEF FPC}
+  Float32 = Single;
+  Float64 = Double;
+{$ELSE}
 {$IF CompilerVersion <= 32} // 10.2 Tokyo
   Float32 = Single;
   Float64 = Double;
 {$IFEND}
+{$ENDIF}
 
 //**************************************************************************************************************
 //** Nullable<T> -- In case of generic-types Delphi compiler generates different RTTI information for each BPL
@@ -1644,7 +1655,11 @@ function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
 implementation
 
 uses
+  {$IFDEF FPC}
+  Math, DateUtils, Types, Generics.Defaults;
+  {$ELSE}
   System.Math, System.DateUtils, System.Types, System.Generics.Defaults;
+  {$ENDIF}
 
 function DateAreEquals(const DateA, DateB: TDate): Boolean;
 begin

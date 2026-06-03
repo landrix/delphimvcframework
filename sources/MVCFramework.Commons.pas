@@ -38,6 +38,7 @@ uses
   Rtti,
   DB,
   Generics.Collections,
+  Variants,
   {$ELSE}
   System.Classes,
   System.SysUtils,
@@ -52,7 +53,9 @@ uses
   IdContext,
   MVCFramework.DuckTyping,
   JsonDataObjects,
+  {$IFNDEF FPC}
   MVCFramework.DotEnv,
+  {$ENDIF}
   MVCFramework.Container,
   sqids;
 
@@ -60,6 +63,18 @@ uses
 
 
 type
+  {$IFDEF FPC}
+  TProc = procedure of object;
+  TFunc<TResult> = function: TResult of object;
+
+  TMVCDotEnvPriority = (FileThenEnv, EnvThenFile, OnlyFile, OnlyEnv);
+
+  EMVCDotEnv = class(Exception);
+
+  IMVCDotEnv = interface
+    ['{5FD2C3CB-0895-4CCD-985F-27394798E4A8}']
+  end;
+  {$ENDIF}
 
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE);
 
@@ -865,7 +880,6 @@ implementation
 uses
   MVCFramework,
   {$IFDEF FPC}
-  SysUtils,
   RegExpr,
   {$ELSE}
   IdCoder3to4,
@@ -1967,15 +1981,25 @@ end;
 
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin
+  {$IFDEF FPC}
+  GdotEnvDelegate := dotEnvDelegate;
+  {$ELSE}
   if GdotEnv <> nil then
   begin
     raise EMVCDotEnv.Create('dotEnv already initialized');
   end;
   GdotEnvDelegate := dotEnvDelegate;
+  {$ENDIF}
 end;
 
 function dotEnv: IMVCDotEnv;
 begin
+  {$IFDEF FPC}
+  if Assigned(GdotEnvDelegate) then
+    Result := GdotEnvDelegate()
+  else
+    Result := nil;
+  {$ELSE}
   if GdotEnv = nil then
   begin
     TMonitor.Enter(gLock);
@@ -2009,6 +2033,7 @@ begin
     end;
   end;
   Result := GdotEnv;
+  {$ENDIF}
 end;
 
 { TMVCSqidsEncoder }

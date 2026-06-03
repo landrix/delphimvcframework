@@ -36,15 +36,18 @@ uses
   System.Classes,
   System.SysUtils,
   {$ENDIF}
-  MVCFramework.Commons,
+  MVCFramework.Commons
   {$IFNDEF FPC}
+  ,
   System.Diagnostics,
-  {$ENDIF}
   LoggerPro,
-  {$IFNDEF FPC}
   LoggerPro.Builder,
-  LoggerPro.FileAppender;
+  LoggerPro.FileAppender
+  {$ELSE}
+  ,
+  LoggerPro
   {$ENDIF}
+  ;
 
 const
   LOGGERPRO_TAG = 'dmvcframework';
